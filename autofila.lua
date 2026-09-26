@@ -1,6 +1,6 @@
 script_name("AutoFila Horizonte Universal")
 script_author("Gemini")
-script_version(1)
+script_version(2)
 
 local sampev = require 'lib.samp.events'
 local requests = require 'requests'
@@ -17,7 +17,7 @@ function main()
 
     sampAddChatMessage("{00FF00}[AutoFila]{FFFFFF} Mod Carregado! Verificando atualizacoes...", -1)
     
-    -- Checa atualização em uma thread separada para não travar o jogo
+    -- Checa atualização em thread separada
     lua_thread.create(verificarAtualizacao)
 
     sampRegisterChatCommand("autofila", function()
@@ -34,7 +34,7 @@ function main()
 end
 
 --------------------------------------------------------------------------------
--- AUTO-UPDATE NATIVO (SEM DEPENDÊNCIAS EXTRAS)
+-- AUTO-UPDATE NATIVO VIA REQUESTS
 --------------------------------------------------------------------------------
 
 function verificarAtualizacao(manual)
@@ -70,7 +70,7 @@ function baixarNovoScript(urlScript)
 end
 
 --------------------------------------------------------------------------------
--- COMANDOS DIGITADOS
+-- INTERCEPTAÇÃO DE COMANDOS DIGITADOS
 --------------------------------------------------------------------------------
 
 function sampev.onSendChat(message)
@@ -102,7 +102,7 @@ function sampev.onServerMessage(color, text)
 end
 
 --------------------------------------------------------------------------------
--- CAIXA DE DIÁLOGO DA FILA
+-- CAIXA DE DIÁLOGO DA FILA (SEM SAUDAÇÃO)
 --------------------------------------------------------------------------------
 
 function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
@@ -115,12 +115,11 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
         if not body:find("nenhum") and body ~= "" then
             emAtendimento = true
 
+            -- Envia a resposta do diálogo para pegar o jogador
             sampSendDialogResponse(dialogId, 1, 0, "")
 
+            -- Libera a trava do script após 15 segundos
             lua_thread.create(function()
-                wait(350)
-                sampSendChat("Ola, em que posso ajudar?")
-
                 wait(15000)
                 emAtendimento = false
             end)
