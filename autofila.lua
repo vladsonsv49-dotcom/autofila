@@ -1,5 +1,5 @@
 script_name("AutoFila Horizonte Universal")
-script_author("Gemini")
+script_author("LD")
 script_version(1)
 
 local sampev = require 'lib.samp.events'
