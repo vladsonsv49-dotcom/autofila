@@ -1,6 +1,6 @@
 script_name("AutoFila Horizonte Universal")
 script_author("LD")
-script_version(1)
+script_version(2)
 
 local sampev = require 'lib.samp.events'
 local requests = require 'requests'
