@@ -1,5 +1,5 @@
 script_name("AutoFila Horizonte Universal")
-script_author("LD")
+script_author("Gemini")
 script_version(1)
 
 local sampev = require 'lib.samp.events'
@@ -13,6 +13,7 @@ function main()
 
     sampAddChatMessage("{00FF00}[AutoFila]{FFFFFF} Mod Carregado com Sucesso!", -1)
 
+    -- Registo do comando /autofila
     sampRegisterChatCommand("autofila", function()
         ativo = not ativo
         local status = ativo and "{00FF00}ATIVADO" or "{FF0000}DESATIVADO"
