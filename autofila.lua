@@ -1,20 +1,24 @@
-script_name("AutoFila Horizonte V8")
+script_name("AutoFila Horizonte Universal")
 script_author("Gemini")
-script_version("8.0")
+script_version(1)
 
 local sampev = require 'lib.samp.events'
+local requests = require 'requests'
 
 local ativo = true
 local emAtendimento = false
 
--- LINKS DO SEU GITHUB (Substitua com os seus links raw do GitHub)
+-- Link do seu JSON no GitHub
 local URL_VERSAO = "https://raw.githubusercontent.com/vladsonos49-dotcom/autofila/main/version.json"
 
 function main()
     if not isSampLoaded() or not isSampfuncsLoaded() then return end
     while not isSampAvailable() do wait(100) end
 
-    sampAddChatMessage("{00FF00}[AutoFila]{FFFFFF} Script V8 Carregado! Use {FFFF00}/autofila{FFFFFF} para Ligar/Desligar.", -1)
+    sampAddChatMessage("{00FF00}[AutoFila]{FFFFFF} Mod Carregado! Verificando atualizacoes...", -1)
+    
+    -- Checa atualização em uma thread separada para não travar o jogo
+    lua_thread.create(verificarAtualizacao)
 
     sampRegisterChatCommand("autofila", function()
         ativo = not ativo
@@ -22,17 +26,56 @@ function main()
         sampAddChatMessage("[AutoFila] Status: " .. status, -1)
     end)
 
+    sampRegisterChatCommand("attfila", function()
+        lua_thread.create(function() verificarAtualizacao(true) end)
+    end)
+
     wait(-1)
 end
 
 --------------------------------------------------------------------------------
--- INTERCEPTAÇÃO DE COMANDOS DIGITADOS
+-- AUTO-UPDATE NATIVO (SEM DEPENDÊNCIAS EXTRAS)
+--------------------------------------------------------------------------------
+
+function verificarAtualizacao(manual)
+    local response = requests.get(URL_VERSAO)
+    if response and response.status_code == 200 then
+        local ok, data = pcall(decodeJson, response.text)
+        if ok and data and data.version then
+            if data.version > thisScript().version then
+                sampAddChatMessage("{FFFF00}[AutoFila] Nova versao encontrada! Baixando...", -1)
+                baixarNovoScript(data.url)
+            else
+                if manual then
+                    sampAddChatMessage("{00FF00}[AutoFila] Seu script ja esta atualizado!", -1)
+                end
+            end
+        end
+    end
+end
+
+function baixarNovoScript(urlScript)
+    local response = requests.get(urlScript)
+    if response and response.status_code == 200 then
+        local file = io.open(thisScript().path, "wb")
+        if file then
+            file:write(response.text)
+            file:close()
+            sampAddChatMessage("{00FF00}[AutoFila] Atualizado com sucesso! Recarregando...", -1)
+            thisScript():reload()
+        end
+    else
+        sampAddChatMessage("{FF0000}[AutoFila] Falha ao baixar atualizacao.", -1)
+    end
+end
+
+--------------------------------------------------------------------------------
+-- COMANDOS DIGITADOS
 --------------------------------------------------------------------------------
 
 function sampev.onSendChat(message)
     local cmd = message:lower()
 
-    -- Libera o estado ao usar /fa ou /fila
     if cmd == "/fila" or cmd == "/fa" or cmd:find("^/finalizaratendimento") or cmd:find("^/fa ") then
         emAtendimento = false
     end
@@ -47,12 +90,10 @@ function sampev.onServerMessage(color, text)
 
     local txt = text:lower()
 
-    -- Reset se o atendimento for finalizado
     if txt:find("atendimento finalizado") or txt:find("voce finalizou") or txt:find("atendimento encerrado") then
         emAtendimento = false
     end
 
-    -- 1. Captura a notificação de nova fila para abrir o menu /fila
     if not emAtendimento then
         if txt:find("solicitou um atendimento") or txt:find("use /fila") or txt:find("fila para atende%-lo") then
             sampSendChat("/fila")
@@ -61,7 +102,7 @@ function sampev.onServerMessage(color, text)
 end
 
 --------------------------------------------------------------------------------
--- CAIXA DE DIÁLOGO DA FILA (SOMENTE VOCÊ PEGA)
+-- CAIXA DE DIÁLOGO DA FILA
 --------------------------------------------------------------------------------
 
 function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
@@ -70,26 +111,21 @@ function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
     local t = title:lower()
     local body = text:lower()
 
-    -- Confirma se a caixa é a Fila de Atendimento
     if t:find("fila") or t:find("atendimento") or body:find("tempo de espera") or body:find("novato") then
         if not body:find("nenhum") and body ~= "" then
-            -- MARCA QUE VOCÊ ATENDEU
             emAtendimento = true
 
-            -- Envia a confirmação para pegar o atendimento na caixa
             sampSendDialogResponse(dialogId, 1, 0, "")
 
-            -- Envia a saudação APENAS porque FOI VOCÊ quem clicou/pegou a fila
             lua_thread.create(function()
                 wait(350)
                 sampSendChat("Ola, em que posso ajudar?")
 
-                -- Trava de segurança: libera o mod após 15s para a próxima fila
                 wait(15000)
                 emAtendimento = false
             end)
 
-            return false -- Oculta o menu da tela
+            return false
         else
             emAtendimento = false
         end
