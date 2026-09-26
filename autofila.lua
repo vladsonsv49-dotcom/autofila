@@ -3,21 +3,15 @@ script_author("LD")
 script_version(1)
 
 local sampev = require 'lib.samp.events'
-local async_http = require 'async-http'
 
 local ativo = true
 local emAtendimento = false
-
--- Link do seu version.json no GitHub
-local URL_VERSAO = "https://raw.githubusercontent.com/vladsonos49-dotcom/autofila/main/version.json"
 
 function main()
     if not isSampLoaded() or not isSampfuncsLoaded() then return end
     while not isSampAvailable() do wait(100) end
 
-    sampAddChatMessage("{00FF00}[AutoFila]{FFFFFF} Mod Carregado! Verificando atualizacoes...", -1)
-    
-    verificarAtualizacao()
+    sampAddChatMessage("{00FF00}[AutoFila]{FFFFFF} Mod Carregado com Sucesso!", -1)
 
     sampRegisterChatCommand("autofila", function()
         ativo = not ativo
@@ -25,53 +19,11 @@ function main()
         sampAddChatMessage("[AutoFila] Status: " .. status, -1)
     end)
 
-    sampRegisterChatCommand("attfila", function()
-        verificarAtualizacao(true)
-    end)
-
     wait(-1)
 end
 
 --------------------------------------------------------------------------------
--- SISTEMA DE ATUALIZAÇÃO (COMPATÍVEL COM MONETLOADER)
---------------------------------------------------------------------------------
-
-function verificarAtualizacao(manual)
-    async_http.request(URL_VERSAO, 'GET', function(response)
-        if response and response.status_code == 200 then
-            local ok, data = pcall(decodeJson, response.text)
-            if ok and data and data.version then
-                if data.version > thisScript().version then
-                    sampAddChatMessage("{FFFF00}[AutoFila] Nova versao encontrada! Baixando...", -1)
-                    baixarNovoScript(data.url)
-                else
-                    if manual then
-                        sampAddChatMessage("{00FF00}[AutoFila] Seu script ja esta atualizado!", -1)
-                    end
-                end
-            end
-        end
-    end)
-end
-
-function baixarNovoScript(urlScript)
-    async_http.request(urlScript, 'GET', function(response)
-        if response and response.status_code == 200 then
-            local file = io.open(thisScript().path, "wb")
-            if file then
-                file:write(response.text)
-                file:close()
-                sampAddChatMessage("{00FF00}[AutoFila] Atualizado com sucesso! Reinicie ou recarregue.", -1)
-                pcall(function() thisScript():reload() end)
-            end
-        else
-            sampAddChatMessage("{FF0000}[AutoFila] Falha ao baixar atualizacao.", -1)
-        end
-    end)
-end
-
---------------------------------------------------------------------------------
--- COMANDOS DIGITADOS
+-- INTERCEPTAÇÃO DE COMANDOS DIGITADOS
 --------------------------------------------------------------------------------
 
 function sampev.onSendChat(message)
@@ -103,7 +55,7 @@ function sampev.onServerMessage(color, text)
 end
 
 --------------------------------------------------------------------------------
--- CAIXA DE DIÁLOGO
+-- DIÁLOGOS (CAIXA DA FILA)
 --------------------------------------------------------------------------------
 
 function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
